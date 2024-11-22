@@ -6,6 +6,7 @@ from deps import get_token
 from utils import (
     generate_lyrics,
     generate_music,
+    get_credits,
     get_feed,
     get_lyrics,
     concat_music,
@@ -100,6 +101,18 @@ async def fetch_lyrics(lid: str, token: str = Depends(get_token)):
         raise HTTPException(
             detail=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+@app.get("/get_credits")
+async def fetch_credits(token: str = Depends(get_token)):
+    try:
+        resp = await get_credits(token)
+        return resp
+    except Exception as e:
+        raise HTTPException(
+            detail=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
 
 
 @app.post("/generate/concat")
