@@ -1,6 +1,6 @@
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Extra, Field
 
 
 class Response(BaseModel):
@@ -26,6 +26,8 @@ class CustomModeGenerateParam(BaseModel):
         examples=[120],
     )
     continue_clip_id: Optional[str] = None
+    class Config:
+        extra = Extra.allow  # 允许额外字段
 
 
 class DescriptionModeGenerateParam(BaseModel):
@@ -43,6 +45,8 @@ class DescriptionModeGenerateParam(BaseModel):
         default="",
         description="Placeholder, keep it as an empty string, do not modify it",
     )
+    class Config:
+        extra = Extra.allow  # 允许额外字段
 
 
 class ConcatParam(BaseModel):
