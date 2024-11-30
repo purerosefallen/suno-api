@@ -14,6 +14,7 @@ class SunoCookie:
         self.token = None
         self.expire_at = None
         self.email = None
+        self.phonenumber = None
 
     def load_cookie(self, cookie_str):
         self.cookie.load(cookie_str)
@@ -44,6 +45,18 @@ class SunoCookie:
 
     def get_email(self):
         return self.email
+    
+    def set_phonenumber(self, phonenumber: str):
+        self.phonenumber = phonenumber
+    
+    def get_phonenumber(self):
+        return self.phonenumber
+    
+    def get_login_identifier(self):
+        if self.email:
+            return self.email
+        if self.phonenumber:
+            return self.phonenumber
 
 
 clerk_js_version = "5.35.1"
@@ -60,19 +73,24 @@ def fetch_session_id(suno_cookie: SunoCookie):
     resp = requests.get(CLERK_BASE_URL, headers=headers, timeout=5)
     session_id = resp.json().get("response").get("last_active_session_id")
     expire_at = resp.json().get("response").get("sessions")[0]["expire_at"]
-    email = (
-        resp.json()
-        .get("response")
-        .get("sessions")[0]["user"]
-        .get("email_addresses")[0]
-        .get("email_address")
-    )
-    email = f"{email.split('@')[0][:5]}****@{email.split('@')[1]}"
+    user_data = resp.json().get("response").get("sessions")[0]["user"]
+
+    email = None
+    if user_data.get("primary_email_address_id"):
+        email = user_data.get("email_addresses")[0].get("email_address")
+        email = f"{email.split('@')[0][:5]}****@{email.split('@')[1]}"
+        suno_cookie.set_email(email)
+    
+    phonenumber = None
+    if user_data.get("primary_phone_number_id"):
+        phonenumber = user_data.get("phone_numbers")[0].get("phone_number")
+        suno_cookie.set_phonenumber(phonenumber)
+    
     suno_cookie.set_session_id(session_id)
     suno_cookie.set_expire_at(expire_at)
-    suno_cookie.set_email(email)
+
     logger.info(
-        f"{email} suno cookie will expire at {datetime.datetime.fromtimestamp(expire_at/1000).strftime('%Y-%m-%d %H:%M:%S')} session_id -> {session_id}"
+        f"{suno_cookie.get_login_identifier()} suno cookie will expire at {datetime.datetime.fromtimestamp(expire_at/1000).strftime('%Y-%m-%d %H:%M:%S')} session_id -> {session_id}"
     )
 
 
@@ -104,11 +122,11 @@ def keep_alive(suno_cookie: SunoCookie):
     interval = suno_cookie.get_expire_at() - int(time.time() * 1000)
     if interval < 0:
         notify(
-            f"email: {suno_cookie.get_email()} suno cookie has expired at {datetime.datetime.fromtimestamp(suno_cookie.get_expire_at()/1000).strftime('%Y-%m-%d %H:%M:%S')}, please update"
+            f"login: {suno_cookie.get_login_identifier()} suno cookie has expired at {datetime.datetime.fromtimestamp(suno_cookie.get_expire_at()/1000).strftime('%Y-%m-%d %H:%M:%S')}, please update"
         )
     elif interval < 60 * 60 * 24 * 1000:
         notify(
-            f"email: {suno_cookie.get_email()} suno cookie will expire at {datetime.datetime.fromtimestamp(suno_cookie.get_expire_at()/1000).strftime('%Y-%m-%d %H:%M:%S')}, please update"
+            f"login: {suno_cookie.get_login_identifier()} suno cookie will expire at {datetime.datetime.fromtimestamp(suno_cookie.get_expire_at()/1000).strftime('%Y-%m-%d %H:%M:%S')}, please update"
         )
     try:
         update_token(suno_cookie)
