@@ -46,7 +46,7 @@ class SunoCookie:
         return self.email
 
 
-clerk_js_version = "4.73.4"
+clerk_js_version = "5.35.1"
 CLERK_BASE_URL = (
     f"https://clerk.suno.com/v1/client?_clerk_js_version={clerk_js_version}"
 )
@@ -82,11 +82,8 @@ fetch_session_id(suno_auth)
 def update_token(suno_cookie: SunoCookie):
     headers = {"cookie": suno_cookie.get_cookie()}
     headers.update(COMMON_HEADERS)
-    session_id = suno_cookie.get_session_id()
 
-    # url = f"https://clerk.suno.com/v1/client/sessions/{session_id}/tokens?__clerk_api_version=2021-02-05&_clerk_js_version={clerk_js_version}"
-    url = f"https://clerk.suno.com/v1/client/sessions/{session_id}/tokens?_clerk_js_version={clerk_js_version}"
-
+    url = f"https://clerk.suno.com/v1/client?__clerk_api_version=2021-02-05&_clerk_js_version={clerk_js_version}&_method=PATCH"
     resp = requests.post(
         url=url,
         headers=headers,
@@ -96,7 +93,7 @@ def update_token(suno_cookie: SunoCookie):
     resp_headers = dict(resp.headers)
     set_cookie = resp_headers.get("Set-Cookie")
     suno_cookie.load_cookie(set_cookie)
-    token = resp.json().get("jwt")
+    token = resp.json()["sessions"][0]["last_active_token"]["jwt"]
     if not token:
         logger.error(f"update token failed, response -> {resp.json()}")
         return
