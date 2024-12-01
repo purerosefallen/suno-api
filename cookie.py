@@ -67,21 +67,22 @@ suno_auth = SunoCookie()
 suno_auth.load_cookie(os.getenv("COOKIE"))
 
 
-def fetch_session_id(suno_cookie: SunoCookie):
+def fetch_userinfo(suno_cookie: SunoCookie):
     headers = {"cookie": suno_cookie.get_cookie()}
     headers.update(COMMON_HEADERS)
     resp = requests.get(CLERK_BASE_URL, headers=headers, timeout=5)
-    session_id = resp.json().get("response").get("last_active_session_id")
-    expire_at = resp.json().get("response").get("sessions")[0]["expire_at"]
-    user_data = resp.json().get("response").get("sessions")[0]["user"]
+    try:
+        session_id = resp.json().get("response").get("last_active_session_id")
+        expire_at = resp.json().get("response").get("sessions")[0]["expire_at"]
+        user_data = resp.json().get("response").get("sessions")[0]["user"]
+    except Exception as e:
+        raise Exception(f"fetch_userinfo error, please check your cookie -> {e}")
 
-    email = None
     if user_data.get("primary_email_address_id"):
         email = user_data.get("email_addresses")[0].get("email_address")
         email = f"{email.split('@')[0][:5]}****@{email.split('@')[1]}"
         suno_cookie.set_email(email)
-    
-    phonenumber = None
+
     if user_data.get("primary_phone_number_id"):
         phonenumber = user_data.get("phone_numbers")[0].get("phone_number")
         suno_cookie.set_phonenumber(phonenumber)
@@ -94,7 +95,7 @@ def fetch_session_id(suno_cookie: SunoCookie):
     )
 
 
-fetch_session_id(suno_auth)
+fetch_userinfo(suno_auth)
 
 
 def update_token(suno_cookie: SunoCookie):
